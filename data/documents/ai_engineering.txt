@@ -1,0 +1,51 @@
+Retrieval-Augmented Generation
+
+Retrieval-Augmented Generation (RAG) is a technique that combines information retrieval with large language models. Instead of relying entirely on information stored in the model's parameters, a RAG system retrieves relevant information from an external knowledge base before generating an answer.
+
+A typical RAG system consists of two major stages: indexing and retrieval-generation. During indexing, documents are loaded, cleaned, divided into smaller chunks, converted into vector embeddings, and stored in a vector database.
+
+During retrieval, the user's query is converted into an embedding. The system compares this query embedding against document embeddings stored in the vector database. The most similar document chunks are returned as context.
+
+The retrieved context and the original user question are then provided to a large language model. The language model generates an answer based on the retrieved information.
+
+Chunking
+
+Large documents are usually divided into smaller pieces called chunks before embeddings are created. Chunking is important because embedding an entire large document into one vector can lose fine-grained semantic information.
+
+Very small chunks can provide precise retrieval results but may lose important surrounding context. Very large chunks contain more context but may also introduce irrelevant information.
+
+Chunk overlap allows some text from one chunk to appear in the next chunk. This helps preserve information that occurs near chunk boundaries.
+
+Dense Retrieval
+
+Dense retrieval represents queries and documents using vector embeddings. Semantically similar text should have vectors that are close to each other in the embedding space.
+
+Cosine similarity is commonly used to measure the similarity between query and document vectors.
+
+Sparse Retrieval
+
+Sparse retrieval techniques such as BM25 rely primarily on lexical or keyword matching. BM25 can perform particularly well when exact terminology, identifiers, names, or rare keywords are important.
+
+Hybrid Retrieval
+
+Hybrid retrieval combines dense semantic retrieval with sparse keyword retrieval. This allows the system to benefit from semantic understanding while preserving strong exact-keyword matching.
+
+Results from multiple retrievers can be combined using techniques such as Reciprocal Rank Fusion.
+
+Reranking
+
+Initial retrieval is optimized for quickly finding potentially relevant documents. A reranker performs a more expensive comparison between the query and retrieved documents and produces a better final ranking.
+
+Agentic RAG
+
+Traditional RAG normally follows a fixed retrieve-then-generate pipeline. Agentic RAG introduces decision-making into the retrieval process.
+
+An agent can decide whether retrieval is required, rewrite an ambiguous query, select different retrieval tools, evaluate retrieved context, retry retrieval, or use another information source when the knowledge base does not contain sufficient information.
+
+Production Incident Records
+
+Incident INC-938271 occurred in the document processing service. The incident was caused by an incorrect parser configuration that prevented PDF documents from being processed correctly.
+
+Incident INC-552104 occurred in the authentication service. The root cause was an expired service credential used by the authentication gateway.
+
+Incident INC-771845 affected the vector database. The issue was caused by insufficient memory being allocated to the indexing service.
