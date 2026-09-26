@@ -4,17 +4,23 @@ import re
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rank_bm25 import BM25Okapi
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import (
+    SentenceTransformer,
+    CrossEncoder,
+)
 
 FILE_PATH=Path("data/documents/ai_engineering.txt")
 
 MODEL_NAME="sentence-transformers/all-MiniLM-L6-v2"
 
+RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L6-v2"
+
 DENSE_TOP_K=5
 BM25_TOP_K=5
 FINAL_TOP_K=3
 
-RRF_K=3
+RERANK_TOP_K = 3
+
 
 RRF_K=60
 
@@ -140,6 +146,49 @@ def reciprocal_rank_fusion(
 
     return ranked_results
 
+def rerank(
+    query,
+    fused_results,
+    chunks,
+    reranker,
+    top_k,
+):
+
+    candidate_indices = [
+        index
+        for index, _ in fused_results
+    ]
+
+    pairs = [
+        (
+            query,
+            chunks[index].page_content,
+        )
+        for index in candidate_indices
+    ]
+
+    scores = reranker.predict(pairs)
+
+    reranked_results = []
+
+    for index, score in zip(
+        candidate_indices,
+        scores,
+    ):
+        reranked_results.append(
+            {
+                "index": index,
+                "score": float(score),
+            }
+        )
+
+    reranked_results.sort(
+        key=lambda result: result["score"],
+        reverse=True,
+    )
+
+    return reranked_results[:top_k]
+
 
 if __name__ == "__main__":
 
@@ -154,6 +203,10 @@ if __name__ == "__main__":
     # -------------------------
 
     model = SentenceTransformer(MODEL_NAME)
+
+    reranker = CrossEncoder(
+    RERANKER_MODEL_NAME
+)
 
     chunk_texts = [
         chunk.page_content
@@ -211,29 +264,34 @@ if __name__ == "__main__":
         RRF_K,
     )
 
+    reranked_results = rerank(
+    query,
+    fused_results,
+    chunks,
+    reranker,
+    RERANK_TOP_K,
+)
+
     # -------------------------
     # Display
     # -------------------------
 
-    print("\nDENSE")
-    print(dense_results)
+    print("\nRERANKED RESULTS")
+print("=" * 70)
 
-    print("\nBM25")
-    print(bm25_results)
+for rank, result in enumerate(
+    reranked_results,
+    start=1,
+):
 
-    print("\nHYBRID RESULTS")
-    print("=" * 70)
+    index = result["index"]
+    score = result["score"]
 
-    for rank, (index, score) in enumerate(
-        fused_results[:FINAL_TOP_K],
-        start=1,
-    ):
+    print(f"\nRANK {rank}")
+    print(f"Chunk: {index}")
+    print(f"Reranker score: {score:.4f}")
 
-        print(f"\nRANK {rank}")
-        print(f"Chunk: {index}")
-        print(f"RRF score: {score:.6f}")
+    print("\nContent:")
+    print(chunks[index].page_content)
 
-        print("\nContent:")
-        print(chunks[index].page_content)
-
-        print("-" * 70)
+    print("-" * 70)
